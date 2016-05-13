@@ -1,4 +1,5 @@
 import {DateTime, Form, Picker, Config, NavController} from '../../../../ionic';
+import * as datetime from '../../../../ionic/util/datetime-util';
 
 export function run() {
 
@@ -104,6 +105,66 @@ describe('DateTime', () => {
   });
 
   describe('generate', () => {
+
+    it('should generate with custom locale short month names from input property', () => {
+      datetime.monthShortNames = customLocale.monthShortNames;
+      datetime.ngAfterContentInit();
+      datetime.pickerFormat = 'MMM YYYY';
+      datetime.setValue('1994-12-15T13:47:20.789Z');
+
+      var picker = new Picker();
+      datetime.generate(picker);
+      var columns = picker.getColumns();
+
+      expect(columns.length).toEqual(2);
+      expect(columns[0].name).toEqual('month');
+      expect(columns[0].options[0].value).toEqual(1);
+      expect(columns[0].options[0].text).toEqual('jan');
+    });
+
+    it('should generate with custom locale full month names from input property', () => {
+      datetime.monthNames = customLocale.monthNames;
+      datetime.ngAfterContentInit();
+      datetime.pickerFormat = 'MMMM YYYY';
+      datetime.setValue('1994-12-15T13:47:20.789Z');
+
+      var picker = new Picker();
+      datetime.generate(picker);
+      var columns = picker.getColumns();
+
+      expect(columns.length).toEqual(2);
+      expect(columns[0].name).toEqual('month');
+      expect(columns[0].options[0].value).toEqual(1);
+      expect(columns[0].options[0].text).toEqual('janeiro');
+    });
+
+    it('should replace a picker format with both a day name and a numeric day to use only the numeric day', () => {
+      datetime.pickerFormat = 'DDDD D M YYYY';
+      datetime.setValue('1994-12-15T13:47:20.789Z');
+
+      var picker = new Picker();
+      datetime.generate(picker);
+      var columns = picker.getColumns();
+
+      expect(columns.length).toEqual(3);
+      expect(columns[0].name).toEqual('day');
+      expect(columns[0].options[0].value).toEqual(1);
+      expect(columns[0].options[0].text).toEqual('1');
+    });
+
+    it('should replace a picker format with only a day name to use a numeric day instead', () => {
+      datetime.pickerFormat = 'DDDD M YYYY';
+      datetime.setValue('1994-12-15T13:47:20.789Z');
+
+      var picker = new Picker();
+      datetime.generate(picker);
+      var columns = picker.getColumns();
+
+      expect(columns.length).toEqual(3);
+      expect(columns[0].name).toEqual('day');
+      expect(columns[0].options[0].value).toEqual(1);
+      expect(columns[0].options[0].text).toEqual('1');
+    });
 
     it('should generate MM DD YYYY pickerFormat with min/max', () => {
       datetime.max = '2010-12-31';
@@ -397,14 +458,60 @@ describe('DateTime', () => {
   var datetime: DateTime;
 
   beforeEach(() => {
-    datetime = mockDateTime();
+    datetime = new DateTime(new Form(), new Config(), null, <NavController>{});
   });
 
-  function mockDateTime(): DateTime {
-    return new DateTime(new Form(), null, <NavController>{});
-  }
-
   console.warn = function(){};
+
+  // pt-br
+  var customLocale: datetime.LocaleData = {
+    dayShort: [
+      'domingo',
+      'segunda-feira',
+      'ter\u00e7a-feira',
+      'quarta-feira',
+      'quinta-feira',
+      'sexta-feira',
+      's\u00e1bado'
+    ],
+    dayShortNames: [
+      'dom',
+      'seg',
+      'ter',
+      'qua',
+      'qui',
+      'sex',
+      's\u00e1b'
+    ],
+    monthNames: [
+      'janeiro',
+      'fevereiro',
+      'mar\u00e7o',
+      'abril',
+      'maio',
+      'junho',
+      'julho',
+      'agosto',
+      'setembro',
+      'outubro',
+      'novembro',
+      'dezembro'
+    ],
+    monthShortNames: [
+      'jan',
+      'fev',
+      'mar',
+      'abr',
+      'mai',
+      'jun',
+      'jul',
+      'ago',
+      'set',
+      'out',
+      'nov',
+      'dez'
+    ],
+  };
 
 });
 

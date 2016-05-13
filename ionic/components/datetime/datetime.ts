@@ -1,11 +1,12 @@
 import {Component, Optional, ElementRef, Renderer, Input, Output, Provider, forwardRef, EventEmitter, HostListener, ViewEncapsulation} from 'angular2/core';
 import {NG_VALUE_ACCESSOR} from 'angular2/common';
 
+import {Config} from '../../config/config';
 import {Picker, PickerColumn, PickerColumnOption} from '../picker/picker';
 import {Form} from '../../util/form';
 import {Item} from '../item/item';
 import {merge, isBlank, isPresent, isTrueProperty, isArray, isString} from '../../util/util';
-import {dateValueRange, renderDateTime, renderTextFormat, convertFormatToKey, getValueFromFormat, parseTemplate, parseDate, updateDate, DateTimeData, convertDataToISO, daysInMonth, dateSortValue, dateDataSortValue} from '../../util/datetime-util';
+import {dateValueRange, renderDateTime, renderTextFormat, convertFormatToKey, getValueFromFormat, parseTemplate, parseDate, updateDate, DateTimeData, convertDataToISO, daysInMonth, dateSortValue, dateDataSortValue, LocaleData} from '../../util/datetime-util';
 import {NavController} from '../nav/nav-controller';
 
 const DATETIME_VALUE_ACCESSOR = new Provider(
@@ -198,10 +199,10 @@ const DATETIME_VALUE_ACCESSOR = new Provider(
  * ```ts
  * @App({
  *   config: {
- *     months: ['janeiro, 'fevereiro', 'mar\u00e7o', ... ],
- *     monthsShort: ['jan', 'fev', 'mar', ... ],
- *     days: ['domingo', 'segunda-feira', 'ter\u00e7a-feira', ... ],
- *     daysShort: ['dom', 'seg', 'ter', ... ],
+ *     monthNames: ['janeiro, 'fevereiro', 'mar\u00e7o', ... ],
+ *     monthShortNames: ['jan', 'fev', 'mar', ... ],
+ *     dayNames: ['domingo', 'segunda-feira', 'ter\u00e7a-feira', ... ],
+ *     dayShortNames: ['dom', 'seg', 'ter', ... ],
  *   }
  * })
  * ```
@@ -212,10 +213,10 @@ const DATETIME_VALUE_ACCESSOR = new Provider(
  * <ion-item>
  *   <ion-label>Período</ion-label>
  *   <ion-datetime displayFormat="DDDD MMM D, YYYY" [(ngModel)]="myDate"
- *     [months]="['janeiro, 'fevereiro', 'mar\u00e7o', ... ]"
- *     [monthsShort]="['jan', 'fev', 'mar', ... ]"
- *     [days]="['domingo', 'segunda-feira', 'ter\u00e7a-feira', ... ]"
- *     [daysShort]="['dom', 'seg', 'ter', ... ]"
+ *     [monthNames]="['janeiro, 'fevereiro', 'mar\u00e7o', ... ]"
+ *     [monthShortNames]="['jan', 'fev', 'mar', ... ]"
+ *     [dayNames]="['domingo', 'segunda-feira', 'ter\u00e7a-feira', ... ]"
+ *     [dayShortNames]="['dom', 'seg', 'ter', ... ]"
  *     ></ion-datetime>
  * </ion-item>
  * ```
@@ -265,7 +266,7 @@ export class DateTime {
   private _min: DateTimeData;
   private _max: DateTimeData;
   private _value: DateTimeData = {};
-
+  private _locale: LocaleData = {};
 
   /**
    * @private
@@ -299,7 +300,7 @@ export class DateTime {
    * the datetime picker's columns. See the `pickerFormat` input description for
    * more info. Defaults to `MMM D, YYYY`.
    */
-  @Input() displayFormat: string;
+  @Input() displayFormat: string = 'MMM D, YYYY';
 
   /**
    * @input {string} The format of the date and time picker columns the user selects.
@@ -368,6 +369,30 @@ export class DateTime {
   @Input() minuteValues: any;
 
   /**
+   * @input {array} Full names for each month name. This can be used to provide
+   * locale month names. Defaults to English.
+   */
+  @Input() monthNames: any;
+
+  /**
+   * @input {array} Short abbreviated names for each month name. This can be used to provide
+   * locale month names. Defaults to English.
+   */
+  @Input() monthShortNames: any;
+
+  /**
+   * @input {array} Full day of the week names. This can be used to provide
+   * locale names for each day in the week. Defaults to English.
+   */
+  @Input() dayNames: any;
+
+  /**
+   * @input {array} Short abbreviated day of the week names. This can be used to provide
+   * locale names for each day in the week. Defaults to English.
+   */
+  @Input() dayShortNames: any;
+
+  /**
    * @input {any} Any addition options that the picker interface can accept.
    * See the [Picker API docs](../../picker/Picker) for the picker options.
    */
@@ -385,6 +410,7 @@ export class DateTime {
 
   constructor(
     private _form: Form,
+    private _config: Config,
     @Optional() private _item: Item,
     @Optional() private _nav: NavController
   ) {
@@ -453,7 +479,7 @@ export class DateTime {
     this.generate(picker);
     this.validate(picker);
 
-    picker.change.subscribe((selectedColumns: any) => {
+    picker.change.subscribe(() => {
       this.validate(picker);
     });
 
@@ -477,6 +503,17 @@ export class DateTime {
       // make sure we've got up to date sizing information
       this.calcMinMax();
 
+      // does not support selecting by day name
+      // automaticallly remove any day name formats
+      template = template.replace('DDDD', '{~}').replace('DDD', '{~}');
+      if (template.indexOf('D') === -1) {
+        // there is not a day in the template
+        // replace the day name with a numeric one if it exists
+        template = template.replace('{~}', 'D');
+      }
+      // make sure no day name replacer is left in the string
+      template = template.replace(/{~}/g, '');
+
       // parse apart the given template into an array of "formats"
       parseTemplate(template).forEach(format => {
         // loop through each format in the template
@@ -487,7 +524,7 @@ export class DateTime {
         // first see if they have exact values to use for this input
         if (isPresent(this[key + 'Values'])) {
           // user provide exact values for this date part
-          values = convertToNumberArray(this[key + 'Values'], key);
+          values = convertToArrayOfNumbers(this[key + 'Values'], key);
 
         } else {
           // use the default date part values
@@ -499,7 +536,7 @@ export class DateTime {
           options: values.map(val => {
             return {
               value: val,
-              text: renderTextFormat(format, val),
+              text: renderTextFormat(format, val, null, this._locale),
             };
           })
         };
@@ -660,7 +697,7 @@ export class DateTime {
    */
   updateText() {
     // create the text of the formatted data
-    this._text = renderDateTime(this.displayFormat, this._value);
+    this._text = renderDateTime(this.displayFormat, this._value, this._locale);
   }
 
   /**
@@ -671,7 +708,7 @@ export class DateTime {
 
     if (isBlank(this.min)) {
       if (isPresent(this.yearValues)) {
-        this.min = Math.min.apply(Math, convertToNumberArray(this.yearValues, 'year'));
+        this.min = Math.min.apply(Math, convertToArrayOfNumbers(this.yearValues, 'year'));
 
       } else {
         this.min = (todaysYear - 100).toString();
@@ -680,7 +717,7 @@ export class DateTime {
 
     if (isBlank(this.max)) {
       if (isPresent(this.yearValues)) {
-        this.max = Math.max.apply(Math, convertToNumberArray(this.yearValues, 'year'));
+        this.max = Math.max.apply(Math, convertToArrayOfNumbers(this.yearValues, 'year'));
 
       } else {
         this.max = todaysYear.toString();
@@ -729,6 +766,14 @@ export class DateTime {
    * @private
    */
   ngAfterContentInit() {
+    // first see if locale names were provided in the inputs
+    // then check to see if they're in the config
+    // if neither were provided then it will use default English names
+    ['monthNames', 'monthShortNames', 'dayNames', 'dayShortNames'].forEach(type => {
+      this._locale[type] = convertToArrayOfStrings(isPresent(this[type]) ? this[type] : this._config.get(type), type);
+    });
+
+    // update how the datetime value is displayed as formatted text
     this.updateText();
   }
 
@@ -783,7 +828,7 @@ export class DateTime {
  * Use to convert a string of comma separated numbers or
  * an array of numbers, and clean up any user input
  */
-function convertToNumberArray(input: any, type: string): number[] {
+function convertToArrayOfNumbers(input: any, type: string): number[] {
   var values: number[] = [];
 
   if (isString(input)) {
@@ -807,4 +852,37 @@ function convertToNumberArray(input: any, type: string): number[] {
   }
 
   return values;
+}
+
+/**
+ * @private
+ * Use to convert a string of comma separated strings or
+ * an array of strings, and clean up any user input
+ */
+function convertToArrayOfStrings(input: any, type: string): string[] {
+  if (isPresent(input)) {
+    var values: string[] = [];
+
+    if (isString(input)) {
+      // convert the string to an array of strings
+      // auto remove any [] characters
+      input = input.replace(/\[|\]/g, '').split(',');
+    }
+
+    if (isArray(input)) {
+      // trim up each string value
+      input.forEach(val => {
+        val = val.trim();
+        if (val) {
+          values.push(val);
+        }
+      });
+    }
+
+    if (!values.length) {
+      console.warn(`Invalid "${type}Names". Must be an array of strings, or a comma separated string.`);
+    }
+
+    return values;
+  }
 }

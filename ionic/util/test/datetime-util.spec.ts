@@ -292,14 +292,20 @@ describe('parseTemplate', () => {
 
 describe('renderDateTime', () => {
 
+  it('should show correct month and day name defaults', () => {
+    var d = datetime.parseDate('2016-05-12');
+    var r = datetime.renderDateTime('DDDD MMM D YYYY', d, {});
+    expect(r).toEqual('Thursday May 12 2016');
+  });
+
   it('should format h:mm a, PM', () => {
     var d = datetime.parseDate('1994-12-15T13:47:20.789Z');
-    expect(datetime.renderDateTime('h:mm a', d)).toEqual('1:47 pm');
+    expect(datetime.renderDateTime('h:mm a', d, {})).toEqual('1:47 pm');
   });
 
   it('should get empty text for format without data', () => {
     var emptyObj = {};
-    expect(datetime.renderDateTime('MMMM D, YYYY h:mm a', emptyObj)).toEqual('');
+    expect(datetime.renderDateTime('MMMM D, YYYY h:mm a', emptyObj, {})).toEqual('');
 
     var dataWithNulls: datetime.DateTimeData = {
       year: null,
@@ -311,52 +317,52 @@ describe('renderDateTime', () => {
       millisecond: null,
       tzOffset: 0,
     };
-    expect(datetime.renderDateTime('MMMM D, YYYY h:mm a', dataWithNulls)).toEqual('');
+    expect(datetime.renderDateTime('MMMM D, YYYY h:mm a', dataWithNulls, {})).toEqual('');
   });
 
   it('should format h:mm a, AM', () => {
     var d = datetime.parseDate('1994-12-15T00:47:20.789Z');
-    expect(datetime.renderDateTime('h:mm a', d)).toEqual('12:47 am');
+    expect(datetime.renderDateTime('h:mm a', d, {})).toEqual('12:47 am');
   });
 
   it('should format HH:mm', () => {
     var d = datetime.parseDate('1994-12-15T13:47:20.789Z');
-    expect(datetime.renderDateTime('HH:mm', d)).toEqual('13:47');
+    expect(datetime.renderDateTime('HH:mm', d, {})).toEqual('13:47');
   });
 
   it('should format MMMM D, YYYY', () => {
     var d = datetime.parseDate('1994-12-15T13:47:20.789Z');
-    expect(datetime.renderDateTime('MMMM D, YYYY', d)).toEqual('December 15, 1994');
+    expect(datetime.renderDateTime('MMMM D, YYYY', d, {})).toEqual('December 15, 1994');
   });
 
   it('should format MM/DD/YYYY', () => {
     var d = datetime.parseDate('1994-12-15T13:47:20.789Z');
-    expect(datetime.renderDateTime('MM/DD/YYYY', d)).toEqual('12/15/1994');
+    expect(datetime.renderDateTime('MM/DD/YYYY', d, {})).toEqual('12/15/1994');
   });
 
   it('should format DD-MM-YY', () => {
     var d = datetime.parseDate('1994-12-15T13:47:20.789Z');
-    expect(datetime.renderDateTime('DD-MM-YY', d)).toEqual('15-12-94');
+    expect(datetime.renderDateTime('DD-MM-YY', d, {})).toEqual('15-12-94');
   });
 
   it('should format YYYY', () => {
     var d = datetime.parseDate('1994-12-15T13:47:20.789Z');
-    expect(datetime.renderDateTime('DD-MM-YY', d)).toEqual('15-12-94');
+    expect(datetime.renderDateTime('DD-MM-YY', d, {})).toEqual('15-12-94');
   });
 
   it('should format YYYY$MM.DD*HH?mm', () => {
     var d = datetime.parseDate('1994-12-15T13:47:20.789Z');
-    expect(datetime.renderDateTime('YYYY$MM.DD*HH?mm', d)).toEqual('1994$12.15*13?47');
+    expect(datetime.renderDateTime('YYYY$MM.DD*HH?mm', d, {})).toEqual('1994$12.15*13?47');
   });
 
   it('should return empty when template invalid', () => {
     var d = datetime.parseDate('1994-12-15T13:47:20.789Z');
-    expect(datetime.renderDateTime('', d)).toEqual('');
+    expect(datetime.renderDateTime('', d, {})).toEqual('');
   });
 
   it('should return empty when date invalid', () => {
     var d = datetime.parseDate(null);
-    expect(datetime.renderDateTime('YYYY', d)).toEqual('');
+    expect(datetime.renderDateTime('YYYY', d, {})).toEqual('');
   });
 
 });
@@ -365,130 +371,168 @@ describe('renderTextFormat', () => {
 
   it('should return a', () => {
     var d = datetime.parseDate('00:47');
-    expect(datetime.renderTextFormat('a', 'am', d)).toEqual('am');
-    expect(datetime.renderTextFormat('a', 'am')).toEqual('am');
+    expect(datetime.renderTextFormat('a', 'am', d, {})).toEqual('am');
+    expect(datetime.renderTextFormat('a', 'am', null, {})).toEqual('am');
 
     var d = datetime.parseDate('11:47');
-    expect(datetime.renderTextFormat('a', 'am', d)).toEqual('am');
-    expect(datetime.renderTextFormat('a', 'am')).toEqual('am');
+    expect(datetime.renderTextFormat('a', 'am', d, {})).toEqual('am');
+    expect(datetime.renderTextFormat('a', 'am', null, {})).toEqual('am');
 
     var d = datetime.parseDate('12:47');
-    expect(datetime.renderTextFormat('a', 'pm', d)).toEqual('pm');
-    expect(datetime.renderTextFormat('a', 'pm')).toEqual('pm');
+    expect(datetime.renderTextFormat('a', 'pm', d, {})).toEqual('pm');
+    expect(datetime.renderTextFormat('a', 'pm', null, {})).toEqual('pm');
   });
 
   it('should return A', () => {
     var d = datetime.parseDate('00:47');
-    expect(datetime.renderTextFormat('A', 'am', d)).toEqual('AM');
-    expect(datetime.renderTextFormat('A', 'am')).toEqual('AM');
+    expect(datetime.renderTextFormat('A', 'am', d, {})).toEqual('AM');
+    expect(datetime.renderTextFormat('A', 'am', null, {})).toEqual('AM');
 
     var d = datetime.parseDate('11:47');
-    expect(datetime.renderTextFormat('A', 'am', d)).toEqual('AM');
-    expect(datetime.renderTextFormat('A', 'am')).toEqual('AM');
+    expect(datetime.renderTextFormat('A', 'am', d, {})).toEqual('AM');
+    expect(datetime.renderTextFormat('A', 'am', null, {})).toEqual('AM');
 
     var d = datetime.parseDate('12:47');
-    expect(datetime.renderTextFormat('A', 'pm', d)).toEqual('PM');
-    expect(datetime.renderTextFormat('A', 'pm')).toEqual('PM');
+    expect(datetime.renderTextFormat('A', 'pm', d, {})).toEqual('PM');
+    expect(datetime.renderTextFormat('A', 'pm', null, {})).toEqual('PM');
   });
 
   it('should return m', () => {
-    expect(datetime.renderTextFormat('m', 1)).toEqual('1');
-    expect(datetime.renderTextFormat('m', 12)).toEqual('12');
+    expect(datetime.renderTextFormat('m', 1, null, {})).toEqual('1');
+    expect(datetime.renderTextFormat('m', 12, null, {})).toEqual('12');
   });
 
   it('should return mm', () => {
-    expect(datetime.renderTextFormat('mm', 1)).toEqual('01');
-    expect(datetime.renderTextFormat('mm', 12)).toEqual('12');
+    expect(datetime.renderTextFormat('mm', 1, null, {})).toEqual('01');
+    expect(datetime.renderTextFormat('mm', 12, null, {})).toEqual('12');
   });
 
   it('should return hh', () => {
-    expect(datetime.renderTextFormat('hh', 0)).toEqual('12');
-    expect(datetime.renderTextFormat('hh', 1)).toEqual('01');
-    expect(datetime.renderTextFormat('hh', 11)).toEqual('11');
-    expect(datetime.renderTextFormat('hh', 12)).toEqual('12');
-    expect(datetime.renderTextFormat('hh', 13)).toEqual('01');
-    expect(datetime.renderTextFormat('hh', 21)).toEqual('09');
-    expect(datetime.renderTextFormat('hh', 23)).toEqual('11');
+    expect(datetime.renderTextFormat('hh', 0, null, {})).toEqual('12');
+    expect(datetime.renderTextFormat('hh', 1, null, {})).toEqual('01');
+    expect(datetime.renderTextFormat('hh', 11, null, {})).toEqual('11');
+    expect(datetime.renderTextFormat('hh', 12, null, {})).toEqual('12');
+    expect(datetime.renderTextFormat('hh', 13, null, {})).toEqual('01');
+    expect(datetime.renderTextFormat('hh', 21, null, {})).toEqual('09');
+    expect(datetime.renderTextFormat('hh', 23, null, {})).toEqual('11');
   });
 
   it('should return h', () => {
-    expect(datetime.renderTextFormat('h', 0)).toEqual('12');
-    expect(datetime.renderTextFormat('h', 1)).toEqual('1');
-    expect(datetime.renderTextFormat('h', 11)).toEqual('11');
-    expect(datetime.renderTextFormat('h', 12)).toEqual('12');
-    expect(datetime.renderTextFormat('h', 13)).toEqual('1');
-    expect(datetime.renderTextFormat('h', 21)).toEqual('9');
-    expect(datetime.renderTextFormat('h', 23)).toEqual('11');
+    expect(datetime.renderTextFormat('h', 0, null, {})).toEqual('12');
+    expect(datetime.renderTextFormat('h', 1, null, {})).toEqual('1');
+    expect(datetime.renderTextFormat('h', 11, null, {})).toEqual('11');
+    expect(datetime.renderTextFormat('h', 12, null, {})).toEqual('12');
+    expect(datetime.renderTextFormat('h', 13, null, {})).toEqual('1');
+    expect(datetime.renderTextFormat('h', 21, null, {})).toEqual('9');
+    expect(datetime.renderTextFormat('h', 23, null, {})).toEqual('11');
   });
 
   it('should return hh', () => {
-    expect(datetime.renderTextFormat('hh', 1)).toEqual('01');
-    expect(datetime.renderTextFormat('hh', 12)).toEqual('12');
+    expect(datetime.renderTextFormat('hh', 1, null, {})).toEqual('01');
+    expect(datetime.renderTextFormat('hh', 12, null, {})).toEqual('12');
   });
 
   it('should return H', () => {
-    expect(datetime.renderTextFormat('H', 1)).toEqual('1');
-    expect(datetime.renderTextFormat('H', 12)).toEqual('12');
+    expect(datetime.renderTextFormat('H', 1, null, {})).toEqual('1');
+    expect(datetime.renderTextFormat('H', 12, null, {})).toEqual('12');
   });
 
   it('should return HH', () => {
-    expect(datetime.renderTextFormat('HH', 1)).toEqual('01');
-    expect(datetime.renderTextFormat('HH', 12)).toEqual('12');
+    expect(datetime.renderTextFormat('HH', 1, null, {})).toEqual('01');
+    expect(datetime.renderTextFormat('HH', 12, null, {})).toEqual('12');
   });
 
   it('should return D', () => {
-    expect(datetime.renderTextFormat('D', 1)).toEqual('1');
-    expect(datetime.renderTextFormat('D', 12)).toEqual('12');
+    expect(datetime.renderTextFormat('D', 1, null, {})).toEqual('1');
+    expect(datetime.renderTextFormat('D', 12, null, {})).toEqual('12');
   });
 
   it('should return DD', () => {
-    expect(datetime.renderTextFormat('DD', 1)).toEqual('01');
-    expect(datetime.renderTextFormat('DD', 12)).toEqual('12');
+    expect(datetime.renderTextFormat('DD', 1, null, {})).toEqual('01');
+    expect(datetime.renderTextFormat('DD', 12, null, {})).toEqual('12');
   });
 
   it('should return DDD', () => {
-    expect(datetime.renderTextFormat('DDD', 1)).toEqual('Sun');
-    expect(datetime.renderTextFormat('DDD', 7)).toEqual('Sat');
+    var d: datetime.DateTimeData = {
+      year: 2016,
+      month: 5,
+      day: 12,
+    };
+
+    expect(datetime.renderTextFormat('DDD', null, d, {})).toEqual('Thu');
+  });
+
+  it('should return DDD with custom locale', () => {
+    var d: datetime.DateTimeData = {
+      year: 2016,
+      month: 5,
+      day: 12,
+    };
+
+    expect(datetime.renderTextFormat('DDD', null, d, customLocale)).toEqual('qui');
   });
 
   it('should return DDDD', () => {
-    expect(datetime.renderTextFormat('DDDD', 1)).toEqual('Sunday');
-    expect(datetime.renderTextFormat('DDDD', 7)).toEqual('Saturday');
+    var d: datetime.DateTimeData = {
+      year: 2016,
+      month: 5,
+      day: 12,
+    };
+
+    expect(datetime.renderTextFormat('DDDD', null, d, {})).toEqual('Thursday');
+  });
+
+  it('should return DDDD with custom locale', () => {
+    var d: datetime.DateTimeData = {
+      year: 2016,
+      month: 5,
+      day: 12,
+    };
+
+    expect(datetime.renderTextFormat('DDDD', null, d, customLocale)).toEqual('quinta-feira');
   });
 
   it('should return M', () => {
-    expect(datetime.renderTextFormat('M', 1)).toEqual('1');
-    expect(datetime.renderTextFormat('M', 12)).toEqual('12');
+    expect(datetime.renderTextFormat('M', 1, null, {})).toEqual('1');
+    expect(datetime.renderTextFormat('M', 12, null, {})).toEqual('12');
   });
 
   it('should return MM', () => {
-    expect(datetime.renderTextFormat('MM', 1)).toEqual('01');
-    expect(datetime.renderTextFormat('MM', 12)).toEqual('12');
+    expect(datetime.renderTextFormat('MM', 1, null, {})).toEqual('01');
+    expect(datetime.renderTextFormat('MM', 12, null, {})).toEqual('12');
   });
 
   it('should return MMM', () => {
-    expect(datetime.renderTextFormat('MMM', 1)).toEqual('Jan');
-    expect(datetime.renderTextFormat('MMM', 12)).toEqual('Dec');
+    expect(datetime.renderTextFormat('MMM', 1, null, {})).toEqual('Jan');
+    expect(datetime.renderTextFormat('MMM', 12, null, {})).toEqual('Dec');
+  });
+
+  it('should return MMM with custom locale', () => {
+    expect(datetime.renderTextFormat('MMM', 1, null, customLocale)).toEqual('jan');
   });
 
   it('should return MMMM', () => {
-    expect(datetime.renderTextFormat('MMMM', 1)).toEqual('January');
-    expect(datetime.renderTextFormat('MMMM', 12)).toEqual('December');
+    expect(datetime.renderTextFormat('MMMM', 1, null, {})).toEqual('January');
+    expect(datetime.renderTextFormat('MMMM', 12, null, {})).toEqual('December');
+  });
+
+  it('should return MMMM with custom locale', () => {
+    expect(datetime.renderTextFormat('MMMM', 1, null, customLocale)).toEqual('janeiro');
   });
 
   it('should return YY', () => {
-    expect(datetime.renderTextFormat('YY', 1994)).toEqual('94');
-    expect(datetime.renderTextFormat('YY', 94)).toEqual('94');
+    expect(datetime.renderTextFormat('YY', 1994, null, {})).toEqual('94');
+    expect(datetime.renderTextFormat('YY', 94, null, {})).toEqual('94');
   });
 
   it('should return YYYY', () => {
-    expect(datetime.renderTextFormat('YYYY', 1994)).toEqual('1994');
-    expect(datetime.renderTextFormat('YYYY', 0)).toEqual('0000');
+    expect(datetime.renderTextFormat('YYYY', 1994, null, {})).toEqual('1994');
+    expect(datetime.renderTextFormat('YYYY', 0, null, {})).toEqual('0000');
   });
 
   it('should return empty when blank', () => {
-    expect(datetime.renderTextFormat(null, null)).toEqual('');
-    expect(datetime.renderTextFormat(null, 1994)).toEqual('1994');
+    expect(datetime.renderTextFormat(null, null, null, {})).toEqual('');
+    expect(datetime.renderTextFormat(null, 1994, null, {})).toEqual('1994');
   });
 
 });
@@ -694,5 +738,55 @@ describe('parseISODate', () => {
   });
 
 });
+
+// pt-br
+var customLocale: datetime.LocaleData = {
+  dayShort: [
+    'domingo',
+    'segunda-feira',
+    'ter\u00e7a-feira',
+    'quarta-feira',
+    'quinta-feira',
+    'sexta-feira',
+    's\u00e1bado'
+  ],
+  dayShortNames: [
+    'dom',
+    'seg',
+    'ter',
+    'qua',
+    'qui',
+    'sex',
+    's\u00e1b'
+  ],
+  monthNames: [
+    'janeiro',
+    'fevereiro',
+    'mar\u00e7o',
+    'abril',
+    'maio',
+    'junho',
+    'julho',
+    'agosto',
+    'setembro',
+    'outubro',
+    'novembro',
+    'dezembro'
+  ],
+  monthShortNames: [
+    'jan',
+    'fev',
+    'mar',
+    'abr',
+    'mai',
+    'jun',
+    'jul',
+    'ago',
+    'set',
+    'out',
+    'nov',
+    'dez'
+  ],
+};
 
 }

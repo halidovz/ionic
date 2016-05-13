@@ -1,7 +1,7 @@
 import {isBlank, isPresent, isString, isObject, assign} from './util';
 
 
-export function renderDateTime(template: string, value: DateTimeData) {
+export function renderDateTime(template: string, value: DateTimeData, locale: LocaleData) {
   if (isBlank(value)) {
     return '';
   }
@@ -11,9 +11,9 @@ export function renderDateTime(template: string, value: DateTimeData) {
   FORMAT_KEYS.forEach((format, index) => {
     if (template.indexOf(format.f) > -1) {
       var token = '{' + index + '}';
-      var text = renderTextFormat(format.f, value[format.k], value);
+      var text = renderTextFormat(format.f, value[format.k], value, locale);
 
-      if (!hasText && text.length && isPresent(value[format.k])) {
+      if (!hasText && text && isPresent(value[format.k])) {
         hasText = true;
       }
 
@@ -35,7 +35,23 @@ export function renderDateTime(template: string, value: DateTimeData) {
 }
 
 
-export function renderTextFormat(format: string, value: any, date?: DateTimeData): string {
+export function renderTextFormat(format: string, value: any, date: DateTimeData, locale: LocaleData): string {
+
+  if (format === FORMAT_DDDD || format === FORMAT_DDD) {
+    try {
+      value = (new Date(date.year, date.month - 1, date.day)).getDay();
+
+      if (format === FORMAT_DDDD) {
+        return (isPresent(locale.dayShort) ? locale.dayShort : DAY_NAMES)[value];
+      }
+
+      return (isPresent(locale.dayShortNames) ? locale.dayShortNames : DAY_SHORT_NAMES)[value];
+
+    } catch (e) {}
+
+    return '';
+  }
+
   if (format === FORMAT_A) {
     return date ? date.hour < 12 ? 'AM' : 'PM' : isPresent(value) ? value.toUpperCase() : '';
   }
@@ -59,19 +75,11 @@ export function renderTextFormat(format: string, value: any, date?: DateTimeData
   }
 
   if (format === FORMAT_MMMM) {
-    return MONTH_MMMM[value - 1];
+    return (isPresent(locale.monthNames) ? locale.monthNames : MONTH_NAMES)[value - 1];
   }
 
   if (format === FORMAT_MMM) {
-    return MONTH_MMM[value - 1];
-  }
-
-  if (format === FORMAT_DDDD) {
-    return DAY_DDDD[value - 1];
-  }
-
-  if (format === FORMAT_DDD) {
-    return DAY_DDD[value - 1];
+    return (isPresent(locale.monthShortNames) ? locale.monthShortNames : MONTH_SHORT_NAMES)[value - 1];
   }
 
   if (format === FORMAT_hh || format === FORMAT_h) {
@@ -101,33 +109,24 @@ export function dateValueRange(format: string, min: DateTimeData, max: DateTimeD
       opts.push(i--);
     }
 
-  } else if (format === FORMAT_MMMM || format === FORMAT_MMM) {
-    // month, full name
-    for (i = 0; i < 12; i++) {
-      opts.push(i + 1);
-    }
-
-  } else if (format === FORMAT_MM || format === FORMAT_M) {
-    // month, numeric
-    for (i = 1; i <= 12; i++) {
+  } else if (format === FORMAT_MMMM || format === FORMAT_MMM ||
+             format === FORMAT_MM || format === FORMAT_M ||
+             format === FORMAT_hh || format === FORMAT_h) {
+    // month or 12-hour
+    for (i = 1; i < 13; i++) {
       opts.push(i);
     }
 
-  } else if (format === FORMAT_DD || format === FORMAT_D) {
-    // day, numeric
-    for (i = 1; i <= 31; i++) {
+  } else if (format === FORMAT_DDDD || format === FORMAT_DDD ||
+             format === FORMAT_DD || format === FORMAT_D) {
+    // day
+    for (i = 1; i < 32; i++) {
       opts.push(i);
     }
 
   } else if (format === FORMAT_HH || format === FORMAT_H) {
     // 24-hour
     for (i = 0; i < 24; i++) {
-      opts.push(i);
-    }
-
-  } else if (format === FORMAT_hh || format === FORMAT_h) {
-    // 12-hour
-    for (i = 1; i <= 12; i++) {
       opts.push(i);
     }
 
@@ -376,15 +375,15 @@ export function convertDataToISO(data: DateTimeData): string {
 }
 
 function twoDigit(val: number): string {
-  return ('0' + (val !== null ? val : '0')).slice(-2);
+  return ('0' + (isPresent(val) ? val : '0')).slice(-2);
 }
 
 function threeDigit(val: number): string {
-  return ('00' + (val !== null ? val : '0')).slice(-3);
+  return ('00' + (isPresent(val) ? val : '0')).slice(-3);
 }
 
 function fourDigit(val: number): string {
-  return ('000' + (val !== null ? val : '0')).slice(-4);
+  return ('000' + (isPresent(val) ? val : '0')).slice(-4);
 }
 
 
@@ -397,6 +396,14 @@ export interface DateTimeData {
   second?: number;
   millisecond?: number;
   tzOffset?: number;
+}
+
+
+export interface LocaleData {
+  monthNames?: string[];
+  monthShortNames?: string[];
+  dayShort?: string[];
+  dayShortNames?: string[];
 }
 
 
@@ -442,7 +449,7 @@ const FORMAT_KEYS = [
 
 const FORMAT_REGEX = /(\[[^\[]*\])|(\\)?([Hh]mm(ss)?|Mo|MM?M?M?|DD?D?D?|ddd?d?|YYYY|YY|a|A|hh?|HH?|mm?|ss?|.)/g;
 
-const DAY_DDDD = [
+const DAY_NAMES = [
   'Sunday',
   'Monday',
   'Tuesday',
@@ -452,17 +459,17 @@ const DAY_DDDD = [
   'Saturday',
 ];
 
-const DAY_DDD = [
+const DAY_SHORT_NAMES = [
   'Sun',
   'Mon',
   'Tue',
   'Wed',
   'Thu',
   'Fri',
-  'Sat'
+  'Sat',
 ];
 
-const MONTH_MMMM = [
+const MONTH_NAMES = [
   'January',
   'February',
   'March',
@@ -474,10 +481,10 @@ const MONTH_MMMM = [
   'September',
   'October',
   'November',
-  'December'
+  'December',
 ];
 
-const MONTH_MMM = [
+const MONTH_SHORT_NAMES = [
   'Jan',
   'Feb',
   'Mar',
@@ -489,5 +496,5 @@ const MONTH_MMM = [
   'Sep',
   'Oct',
   'Nov',
-  'Dec'
+  'Dec',
 ];
