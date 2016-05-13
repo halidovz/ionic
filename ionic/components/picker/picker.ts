@@ -88,7 +88,7 @@ export class Picker extends ViewController {
   template:
     '<div *ngIf="col.prefix" class="picker-prefix" [style.width]="col.prefixWidth">{{col.prefix}}</div>' +
     '<div class="picker-opts" #colEle [style.width]="col.optionsWidth">' +
-      '<button *ngFor="#o of col.options; #i=index" [style.transform]="o._trans" [style.transitionDuration]="o._dur" [class.picker-opt-selected]="col.selectedIndex === i" [class.picker-opt-disabled]="o.disabled" [class.picker-opt-hidden]="o.hidden" (click)="optClick($event, i)" type="button" category="picker-opt">' +
+      '<button *ngFor="#o of col.options; #i=index" [style.transform]="o._trans" [style.transitionDuration]="o._dur" [class.picker-opt-selected]="col.selectedIndex === i" [class.picker-opt-disabled]="o.disabled" (click)="optClick($event, i)" type="button" category="picker-opt">' +
         '{{o.text}}' +
       '</button>' +
     '</div>' +
@@ -507,7 +507,8 @@ class PickerDisplayCmp {
       column.options = column.options.map(inputOpt => {
         let opt: PickerColumnOption = {
           text: '',
-          value: ''
+          value: '',
+          disabled: inputOpt.disabled,
         };
 
         if (isPresent(inputOpt)) {
