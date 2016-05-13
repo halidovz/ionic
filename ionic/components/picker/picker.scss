@@ -105,8 +105,19 @@ ion-picker-cmp {
   display: block;
 
   overflow: hidden;
+
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  transition: opacity 150ms ease-in-out;
+}
+
+.picker-opt.picker-opt-disabled {
+  pointer-events: none;
+}
+
+.picker-opt-disabled .button-inner {
+  opacity: 0;
 }
 
 .picker-opts-left .button-inner {

@@ -5,18 +5,14 @@ import {App, Page} from '../../../../../ionic';
   templateUrl: 'main.html'
 })
 class E2EPage {
-  wwwInvented;
-  time;
-  netscapeRelease: Date;
-  firefoxRelease: Date;
+  wwwInvented = '1989';
+  time = '13:47';
+  netscapeRelease = '1994-12-15T13:47:20.789';
+  firefoxRelease = '2002-09-23T15:03:46.789';
+  webkitOpenSourced = '2005-06-17T11:06Z';
+  leapYearsSummerMonths = '';
 
-  constructor() {
-    this.wwwInvented = '1989';
-    this.netscapeRelease = new Date(1994, 11, 15, 13, 47, 20, 789);
-    this.firefoxRelease = new Date(2002, 8, 23, 15, 3, 46, 789);
-    this.time = '13:47';
-  }
-
+  leapYearsArray = [2020, 2016, 2008, 2004, 2000, 1996];
 }
 
 

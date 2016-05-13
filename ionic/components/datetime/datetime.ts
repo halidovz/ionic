@@ -1,11 +1,11 @@
 import {Component, Optional, ElementRef, Renderer, Input, Output, Provider, forwardRef, EventEmitter, HostListener, ViewEncapsulation} from 'angular2/core';
 import {NG_VALUE_ACCESSOR} from 'angular2/common';
 
-import {Picker, PickerColumn} from '../picker/picker';
+import {Picker, PickerColumn, PickerColumnOption} from '../picker/picker';
 import {Form} from '../../util/form';
 import {Item} from '../item/item';
-import {merge, isBlank, isPresent, isTrueProperty} from '../../util/util';
-import {dateValueRange, renderDateTime, renderTextFormat, convertFormatToDateKey, parseTemplate, parseDate, DateTimeData, convertDateTimeDataToDate} from '../../util/datetime-util';
+import {merge, isBlank, isPresent, isTrueProperty, isArray, isString} from '../../util/util';
+import {dateValueRange, renderDateTime, renderTextFormat, convertFormatToKey, getValueFromFormat, parseTemplate, parseDate, updateDate, DateTimeData, convertDataToISO, daysInMonth, dateSortValue, dateDataSortValue} from '../../util/datetime-util';
 import {NavController} from '../nav/nav-controller';
 
 const DATETIME_VALUE_ACCESSOR = new Provider(
@@ -16,31 +16,226 @@ const DATETIME_VALUE_ACCESSOR = new Provider(
  * @name DateTime
  * @description
  * The `ion-datetime` component is similar to an HTML `<input type="datetime-local">`
- * element, however, Ionic's datetime component makes it easier for developers to
- * display an exact datetime input format, and for users to easily scroll through
- * and individually select parts of date and time data.
- *
- *
- * ### Timezones
- *
- * Like HTML's `datetime-local` input, this component does not get involved with
- * timezone information, and it considers its data as local time. What this basically
- * means is that `ion-datetime` shows the value of the exact date that it was given,
- * rather than it automatically adjusting according to the timezone the browser is in,
- * and the timezone set within the data. Hidden magical timezone calcuations cause nothing
- * but unexpected data and headaches when the developer isn't in full control. If
- * timezones need to adjust according to the user's browser and the data given, then the
- * data should be updated appropriately before it is passed to this component.
- *
- *
+ * input, however, Ionic's datetime component makes it easier for developers to
+ * display an exact datetime input format and manage values within JavaScript.
+ * Additionally, the datetime component makes it easier for users to scroll through
+ * and individually select parts of date and time values from an easy to user interface.
  *
  * ```html
  * <ion-item>
  *   <ion-label>Date</ion-label>
- *   <ion-datetime displayFormat="MM/DD/YYYY" min="2013" max="2020" [(ngModel)]="date">
+ *   <ion-datetime displayFormat="MM/DD/YYYY" [(ngModel)]="myDate">
  *   </ion-datetime>
  * </ion-item>
  * ```
+ *
+ *
+ * ### Display and Picker Formats
+ *
+ * How datetime values can be displayed can come in many variations formats,
+ * therefore it is best to let the app decide exactly how to display it. To do
+ * so, `ion-datetime` uses a common format seen in many other libraries and
+ * programming languages:
+ *
+ * | Format   | Description         | Examples       |
+ * |----------|---------------------|----------------|
+ * | `YYYY`   | Year, 4 digits      | `2018`         |
+ * | `YY`     | Year, 2 digits      | `18`           |
+ * | `M`      | Month, 1 digit      | `1` .. `31`    |
+ * | `MM`     | Month, 2 digit      | `01` .. `31`   |
+ * | `MMM`    | Month, short name   | `Jan` *        |
+ * | `MMMM`   | Month, full name    | `January` *    |
+ * | `D`      | Day, 1 digit        | `1` .. `31`    |
+ * | `DD`     | Day, 2 digit        | `01` .. `31`   |
+ * | `DDD`    | Day, short name     | `Fri` *        |
+ * | `DDDD`   | Day, full name      | `Friday` *     |
+ * | `H`      | 24-hour, 1 digit    | `0` .. `23`    |
+ * | `HH`     | 24-hour, 2 digit    | `00` .. `23`   |
+ * | `h`      | 12-hour, 1 digit    | `1` .. `12`    |
+ * | `hh`     | 12-hour, 2 digit    | `01` .. `12`   |
+ * | `a`      | am/pm, lower case   | `am` `pm`      |
+ * | `A`      | AM/PM, upper case   | `AM` `PM`      |
+ * | `m`      | minute, 1 digit     | `1` .. `59`    |
+ * | `mm`     | minute, 2 digit     | `01` .. `59`   |
+ * | `s`      | seconds, 1 digit    | `1` .. `59`    |
+ * | `ss`     | seconds, 2 digit    | `01` .. `59`   |
+ * | `Z`      | UTC Timezone Offset |                |
+ *
+ * * See the "Month Names and Day of the Week Names" section below on how to
+ * use names other than the default English month and day names.
+ *
+ * The `displayFormat` input allows developers to specify how a date's value
+ * should be displayed within the `ion-datetime`. The `pickerFormat` decides
+ * which datetime picker columns should be shown, the order of the columns, and
+ * which format to display the value in. If a `pickerFormat` is not provided
+ * then it'll use the `displayFormat` instead. In most cases only providing the
+ * `displayFormat` is needed.
+ *
+ * In the example below, the datetime's display would use the month's short
+ * name, the 1 digit day in the month, and a 4 digit year.
+ *
+ * ```html
+ * <ion-item>
+ *   <ion-label>Date</ion-label>
+ *   <ion-datetime displayFormat="MMM DD, YYYY" [(ngModel)]="myDate">
+ *   </ion-datetime>
+ * </ion-item>
+ * ```
+ *
+ * In this example, the datetime's display would only show hours and minutes,
+ * and the hours would be in the 24-hour format. Note that the divider between
+ * the hours and minutes, in this case the `:` character, can be have any
+ * character which the app chooses to use as the divider.
+ *
+ * ```html
+ * <ion-item>
+ *   <ion-label>Date</ion-label>
+ *   <ion-datetime displayFormat="HH:mm" [(ngModel)]="myDate">
+ *   </ion-datetime>
+ * </ion-item>
+ * ```
+ *
+ *
+ * ### Datetime Data
+ *
+ * Historically, handling datetime data within JavaScript, or even within HTML
+ * inputs, has always been a challenge. Specifically, JavaScript's `Date` object is
+ * notoriously difficult to correctly parse apart datetime strings or to format
+ * datetime values. Even worse is how different browsers and JavaScript versions
+ * parse various datetime strings differently, especially per locale. Additional,
+ * developers face even more challenges when dealing with timezones using
+ * JavaScript's core `Date` object.
+ *
+ * But no worries, all is not lost! Ionic's datetime input has been designed so
+ * developers can avoid the common pitfalls, allowing developers to easily format
+ * datetime data within the input, and give the user a simple datetime picker for a
+ * great user experience. Oddly enough, one of the best ways to work with datetime
+ * values in JavaScript is to not use the `Date` object at all.
+ *
+ * ##### ISO 8601 Datetime Format: YYYY-MM-DDTHH:mmZ
+ *
+ * For all the reasons above, and how datetime data is commonly saved within databases,
+ * Ionic uses the [ISO 8601 datetime format](https://www.w3.org/TR/NOTE-datetime)
+ * for both its input value, and output value. The value is simply a string, rather
+ * than using JavaScript's `Date` object, and it strictly follows the standardized
+ * ISO 8601 format. Additionally, when using the ISO datetime string format, it makes
+ * it easier on developers when passing data within JSON objects, and sending databases
+ * a standardized datetime format which it can be easily parse apart and formatted.
+ * Because of the strict adherence to the ISO 8601 format, and not involving the hundreds
+ * of other format possibilities and locales, this approach actually makes it easier
+ * for Ionic apps and backend-services to manage datetime data.
+ *
+ * An ISO format can be used as a simple year, or just the hour and minute, or get more
+ * detailed down to the millisecond and timezone. Any of the ISO formats below can be used,
+ * and after a user selects a new date, Ionic will continue to use the same ISO format
+ * which datetime value was originally given as.
+ *
+ * | Description          | Format                 | Datetime Value Example       |
+ * |----------------------|------------------------|------------------------------|
+ * | Year                 | YYYY                   | 1994                         |
+ * | Year and Month       | YYYY-MM                | 1994-12                      |
+ * | Complete Date        | YYYY-MM-DD             | 1994-12-15                   |
+ * | Date and Time        | YYYY-MM-DDTHH:mm       | 1994-12-15T13:47             |
+ * | UTC Timezone         | YYYY-MM-DDTHH:mm:ssTZD | 1994-12-15T13:47:20.789Z     |
+ * | Timezone Offset      | YYYY-MM-DDTHH:mm:ssTZD | 1994-12-15T13:47:20.789+5:00 |
+ * | Hour and Minute      | HH:mm                  | 13:47                        |
+ * | Hour, Minute, Second | HH:mm:ss               | 13:47:20                     |
+ *
+ * Note that the year is always four-digits, milliseconds (if it's added) is always
+ * three-digits, and all others are always two-digits. So the number representing
+ * January always has a leading zero, such as `01`. Additionally, the hour is always
+ * in the 24-hour format, so `00` is `12am` on a 12-hour clock, `13` means `1pm`,
+ * and `23` means `11pm`.
+ *
+ * It's also important to note that neither the `displayFormat` or `pickerFormat` can
+ * set the datetime value's output, which is the value that sent the the component's
+ * `ngModel`. The format's are merely for displaying the value as text and the picker's
+ * interface, but the datetime's value is always persisted as a valid ISO 8601 datetime
+ * string.
+ *
+ *
+ * ### Min and Max Datetimes
+ *
+ * Dates are infinite in either direction, so for a user selection there should be at
+ * least some form of restricting the dates can be selected. Be default, the maximum
+ * date is to the end of the current year, and the minimum date is from the beginning
+ * of the year that was 100 years ago.
+ *
+ * To customize the minimum and maximum datetime values, the `min` and `max` component
+ * inputs can be provided which may make more sense for the app's use-case, rather
+ * than the default of the last 100 years. Following the same IS0 8601 format listed
+ * in the table above, each component can restrict which dates can be selected by the
+ * user. Below is an example of restricting the date selection between the beginning
+ * of 2016, and October 31st of 2020:
+ *
+ * ```html
+ * <ion-item>
+ *   <ion-label>Date</ion-label>
+ *   <ion-datetime displayFormat="MMMM YYYY" min="2016" max="2020-10-31" [(ngModel)]="myDate">
+ *   </ion-datetime>
+ * </ion-item>
+ * ```
+ *
+ *
+ * ### Month Names and Day of the Week Names
+ *
+ * At this time, there is no one-size-fits-all standard to automatically choose the correct
+ * language/spelling for a month name, or day of the week name, depending on the language
+ * or locale. Good news is that there is an
+ * [Intl.DateTimeFormat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DateTimeFormat)
+ * standard which *most* browsers have adopted. However, at this time the standard has not
+ * been fully implemented by all popular browsers so Ionic is unavailable to take advantage
+ * of it *yet*. Additionally, Angular also provides an internationalization service, but it
+ * is still under heavy development so Ionic does not depend on it at this time.
+ *
+ * All things considered, the by far easiest solution is to just provide an array of names
+ * if the app needs to use names other than the default English version of month and day
+ * names. The month names and day names can be either configurated at the app level, or
+ * individual `ion-datetime` level.
+ *
+ * ##### App Config Level
+ *
+ * ```ts
+ * @App({
+ *   config: {
+ *     months: ['janeiro, 'fevereiro', 'mar\u00e7o', ... ],
+ *     monthsShort: ['jan', 'fev', 'mar', ... ],
+ *     days: ['domingo', 'segunda-feira', 'ter\u00e7a-feira', ... ],
+ *     daysShort: ['dom', 'seg', 'ter', ... ],
+ *   }
+ * })
+ * ```
+ *
+ * ##### Component Input Level
+ *
+ * ```html
+ * <ion-item>
+ *   <ion-label>Período</ion-label>
+ *   <ion-datetime displayFormat="DDDD MMM D, YYYY" [(ngModel)]="myDate"
+ *     [months]="['janeiro, 'fevereiro', 'mar\u00e7o', ... ]"
+ *     [monthsShort]="['jan', 'fev', 'mar', ... ]"
+ *     [days]="['domingo', 'segunda-feira', 'ter\u00e7a-feira', ... ]"
+ *     [daysShort]="['dom', 'seg', 'ter', ... ]"
+ *     ></ion-datetime>
+ * </ion-item>
+ * ```
+ *
+ *
+ * ### Advanced Datetime Validation and Manipulation
+ *
+ * The datetime picker provides the simplicity of selecting an exact format, and persists
+ * the datetime values as a string using the standardized
+ * [ISO 8601 datetime format](https://www.w3.org/TR/NOTE-datetime).
+ * However, it's important to note that `ion-datetime` does not attempt to solve all
+ * situtations when validating and manipulating datetime values. If datetime values need
+ * to be parsed from a certain format, or manipulated (such as adding 5 days to a date,
+ * subtracting 30 minutes), or even formatting data to a specific locale, then we highly
+ * recommend using [moment.js](http://momentjs.com/) to "Parse, validate, manipulate, and
+ * display dates in JavaScript". [Moment.js](http://momentjs.com/) has quickly become
+ * our goto standard when dealing with datetimes within JavaScript, but Ionic does not
+ * prepackage this dependency since most apps will not require it, and its locale
+ * configuration should be decided by the end-developer.
+ *
  *
  */
 @Component({
@@ -69,7 +264,8 @@ export class DateTime {
   private _isOpen: boolean = false;
   private _min: DateTimeData;
   private _max: DateTimeData;
-  private _value: DateTimeData;
+  private _value: DateTimeData = {};
+
 
   /**
    * @private
@@ -80,7 +276,9 @@ export class DateTime {
    * @input {string} The minimum datetime allowed. Value must be a date string
    * following the
    * [ISO 8601 datetime format standard](https://www.w3.org/TR/NOTE-datetime),
-   * such as `1996-12-19T16:39`. Defaults to 100 years ago from today.
+   * such as `1996-12-19`. The format does not have to be specific to an exact
+   * datetime. For example, the minimum could just be the year, such as `1994`.
+   * Defaults to the beginning of the year, 100 years ago from today.
    */
   @Input() min: string;
 
@@ -88,48 +286,100 @@ export class DateTime {
    * @input {string} The maximum datetime allowed. Value must be a date string
    * following the
    * [ISO 8601 datetime format standard](https://www.w3.org/TR/NOTE-datetime),
-   * `1996-12-19T16:39`. Defaults to the end of this year.
+   * `1996-12-19`. The format does not have to be specific to an exact
+   * datetime. For example, the maximum could just be the year, such as `1994`.
+   * Defaults to the end of this year.
    */
   @Input() max: string;
 
   /**
    * @input {string} The display format of the date and time as text that shows
-   * within the item. Defaults to `MMM D, YYYY`.
+   * within the item. When the `pickerFormat` input is not used, then the
+   * `displayFormat` is used for both display the formatted text, and determining
+   * the datetime picker's columns. See the `pickerFormat` input description for
+   * more info. Defaults to `MMM D, YYYY`.
    */
   @Input() displayFormat: string;
 
   /**
    * @input {string} The format of the date and time picker columns the user selects.
    * A datetime input can have one or many datetime parts, each getting their
-   * own column which allow individual selection of that datetime part. Each
-   * column follows the string parse format, and is separated by a `|` character.
-   * Defaults to `MMM|D|YYYY`.
+   * own column which allow individual selection of that particular datetime part. For
+   * example, year and month columns are two individually selectable columns which help
+   * choose an exact date from the datetime picker. Each column follows the string
+   * parse format. Defaults to use `displayFormat`.
    */
   @Input() pickerFormat: string;
 
   /**
-   * @input {string} The text to display on the cancel button. Default: `Cancel`.
+   * @input {string} The text to display on the picker's cancel button. Default: `Cancel`.
    */
   @Input() cancelText: string = 'Cancel';
 
   /**
-   * @input {string} The text to display on the "Done" button. Default: `Done`.
+   * @input {string} The text to display on the picker's "Done" button. Default: `Done`.
    */
   @Input() doneText: string = 'Done';
 
   /**
-   * @input {any} Any addition options that the picker interface can take.
-   * See the [Picker API docs](../../picker/Picker) for the create options.
+   * @input {array | string} Values used to create the list of selectable years. By default
+   * the year values range between the `min` and `max` datetime inputs. However, to
+   * control exactly which years to display, the `yearValues` input can take either an array
+   * of numbers, or string of comma separated numbers. For example, to show upcoming and
+   * recent leap years, then this input's value would be `yearValues="2024,2020,2016,2012,2008"`.
+   */
+  @Input() yearValues: any;
+
+  /**
+   * @input {array | string} Values used to create the list of selectable months. By default
+   * the month values range from `1` to `12`. However, to control exactly which months to
+   * display, the `monthValues` input can take either an array of numbers, or string of
+   * comma separated numbers. For example, if only summer months should be shown, then this
+   * input value would be `monthValues="6,7,8"`. Note that month numbers do *not* have a
+   * zero-based index, meaning January's value is `1`, and December's is `12`.
+   */
+  @Input() monthValues: any;
+
+  /**
+   * @input {array | string} Values used to create the list of selectable days. By default
+   * every day is shown for the given month. However, to control exactly which days of
+   * the month to display, the `dayValues` input can take either an array of numbers, or
+   * string of comma separated numbers. Note that even if the array days have an invalid
+   * number for the selected month, like `31` in February, it will correctly not show
+   * days which are not valid for the selected month.
+   */
+  @Input() dayValues: any;
+
+  /**
+   * @input {array | string} Values used to create the list of selectable hours. By default
+   * the hour values range from `1` to `23` for 24-hour, or `1` to `12` for 12-hour. However,
+   * to control exactly which hours to display, the `hourValues` input can take either an
+   * array of numbers, or string of comma separated numbers.
+   */
+  @Input() hourValues: any;
+
+  /**
+   * @input {array | string} Values used to create the list of selectable minutes. By default
+   * the mintues range from `1` to `59`. However, to control exactly which minutes to display,
+   * the `minuteValues` input can take either an array of numbers, or string of comma separated
+   * numbers. For example, if the minute selections should only be every 15 minutes, then
+   * this input value would be `minuteValues="0,15,30,45"`.
+   */
+  @Input() minuteValues: any;
+
+  /**
+   * @input {any} Any addition options that the picker interface can accept.
+   * See the [Picker API docs](../../picker/Picker) for the picker options.
    */
   @Input() pickerOptions: any = {};
 
   /**
-   * @output {any} Any expression you want to evaluate when the datetime selection has changed.
+   * @output {any} Any expression to evaluate when the datetime selection has changed.
    */
   @Output() change: EventEmitter<any> = new EventEmitter();
 
   /**
-   * @output {any} Any expression you want to evaluate when the datetime selection was cancelled.
+   * @output {any} Any expression to evaluate when the datetime selection was cancelled.
    */
   @Output() cancel: EventEmitter<any> = new EventEmitter();
 
@@ -200,7 +450,12 @@ export class DateTime {
       }
     ];
 
-    this.generateColumns(picker);
+    this.generate(picker);
+    this.validate(picker);
+
+    picker.change.subscribe((selectedColumns: any) => {
+      this.validate(picker);
+    });
 
     this._nav.present(picker, pickerOptions);
 
@@ -213,7 +468,7 @@ export class DateTime {
   /**
    * @private
    */
-  generateColumns(picker: Picker) {
+  generate(picker: Picker) {
     // if a picker format wasn't provided, then fallback
     // to use the display format
     let template = this.pickerFormat || this.displayFormat;
@@ -226,33 +481,162 @@ export class DateTime {
       parseTemplate(template).forEach(format => {
         // loop through each format in the template
         // create a new picker column to build up with data
+        let key = convertFormatToKey(format);
+        let values: any[];
+
+        // first see if they have exact values to use for this input
+        if (isPresent(this[key + 'Values'])) {
+          // user provide exact values for this date part
+          values = convertToNumberArray(this[key + 'Values'], key);
+
+        } else {
+          // use the default date part values
+          values = dateValueRange(format, this._min, this._max);
+        }
+
         let column: PickerColumn = {
-          name: convertFormatToDateKey(format),
-          options: dateValueRange(format, this._min, this._max).map(val => {
+          name: key,
+          options: values.map(val => {
             return {
               value: val,
               text: renderTextFormat(format, val),
             };
-          }),
-          columnWidth: getColumnWidth(format)
+          })
         };
 
         if (column.options.length) {
           // cool, we've loaded up the columns with options
-          if (this._value && this._value.type) {
-            // we've got a valid date value already
-            // preselect the option for this column
-            var selected = column.options.find(opt => {
-              return opt.value === this._value[convertFormatToDateKey(format)];
-            });
-            if (selected) {
-              // set the select index for this column's options
-              column.selectedIndex = column.options.indexOf(selected);
-            }
+          // preselect the option for this column
+          var selected = column.options.find(opt => opt.value === getValueFromFormat(this._value, format));
+          if (selected) {
+            // set the select index for this column's options
+            column.selectedIndex = column.options.indexOf(selected);
           }
+
           // add our newly created column to the picker
           picker.addColumn(column);
         }
+      });
+
+      this.divyColumns(picker);
+    }
+  }
+
+  /**
+   * @private
+   */
+  validate(picker: Picker) {
+    let i: number;
+    let today = new Date();
+    let columns = picker.getColumns();
+
+    // find the columns used
+    let yearCol = columns.find(col => col.name === 'year');
+    let monthCol = columns.find(col => col.name === 'month');
+    let dayCol = columns.find(col => col.name === 'day');
+
+    let yearOpt: PickerColumnOption;
+    let monthOpt: PickerColumnOption;
+    let dayOpt: PickerColumnOption;
+
+    // default to assuming today's year
+    let selectedYear = today.getFullYear();
+    if (yearCol) {
+      yearOpt = yearCol.options[yearCol.selectedIndex];
+      if (yearOpt) {
+        // they have a selected year value
+        selectedYear = yearOpt.value;
+      }
+    }
+
+    // default to assuming this month has 31 days
+    let numDaysInMonth = 31;
+    let selectedMonth;
+    if (monthCol) {
+      monthOpt = monthCol.options[monthCol.selectedIndex];
+      if (monthOpt) {
+        // they have a selected month value
+        selectedMonth = monthOpt.value;
+
+        // calculate how many days are in this month
+        numDaysInMonth = daysInMonth(selectedMonth, selectedYear);
+      }
+    }
+
+    // create sort values for the min/max datetimes
+    let minCompareVal = dateDataSortValue(this._min);
+    let maxCompareVal = dateDataSortValue(this._max);
+
+    if (monthCol) {
+      // enable/disable which months are valid
+      // to show within the min/max date range
+      for (i = 0; i < monthCol.options.length; i++) {
+        monthOpt = monthCol.options[i];
+
+        // loop through each month and see if it
+        // is within the min/max date range
+        monthOpt.disabled = (dateSortValue(selectedYear, monthOpt.value, 31) < minCompareVal ||
+                             dateSortValue(selectedYear, monthOpt.value, 1) > maxCompareVal);
+      }
+    }
+
+    if (dayCol) {
+      if (isPresent(selectedMonth)) {
+        // enable/disable which days are valid
+        // to show within the min/max date range
+        for (i = 0; i < 31; i++) {
+          dayOpt = dayCol.options[i];
+
+          // loop through each day and see if it
+          // is within the min/max date range
+          var compareVal = dateSortValue(selectedYear, selectedMonth, dayOpt.value);
+
+          dayOpt.disabled = (compareVal < minCompareVal ||
+                             compareVal > maxCompareVal ||
+                             numDaysInMonth <= i);
+        }
+
+      } else {
+        // enable/disable which numbers of days to show in this month
+        for (i = 0; i < 31; i++) {
+          dayCol.options[i].disabled = (numDaysInMonth <= i);
+        }
+      }
+    }
+
+    picker.refresh();
+  }
+
+  /**
+   * @private
+   */
+  divyColumns(picker: Picker) {
+    let pickerColumns = picker.getColumns();
+    let columns = [];
+
+    pickerColumns.forEach((col, i) => {
+      columns.push(0);
+
+      col.options.forEach(opt => {
+        if (opt.text.length > columns[i]) {
+          columns[i] = opt.text.length;
+        }
+      });
+
+    });
+
+    if (columns.length === 2) {
+      var width = Math.max(columns[0], columns[1]);
+      pickerColumns[0].columnWidth = pickerColumns[1].columnWidth = `${width * 16}px`;
+
+    } else if (columns.length === 3) {
+      var width = Math.max(columns[0], columns[2]);
+      pickerColumns[1].columnWidth = `${columns[1] * 16}px`;
+      pickerColumns[0].columnWidth = pickerColumns[2].columnWidth = `${width * 16}px`;
+
+    } else if (columns.length > 3) {
+      columns.forEach((col, i) => {
+        pickerColumns[i].columnWidth = `${col * 12}px`;
       });
     }
   }
@@ -260,35 +644,15 @@ export class DateTime {
   /**
    * @private
    */
-  setValue(data: any) {
-    if (isBlank(data) || data === '') {
-      // no data
-      this._value = null;
+  setValue(newData: any) {
+    updateDate(this._value, newData);
+  }
 
-    } else if (this._value && this._value.type && isPresent(data.year)) {
-      // there is already a valid parsed DateTimeData value
-      // and the value update has new DateTimeData values
-      // update the existing DateTimeData data with the new values
-      for (var k in data) {
-        if (isPresent(data[k].value)) {
-          this._value[k] = data[k].value;
-        }
-      }
-
-    } else {
-      // new data, parse it and create the DateTimeData value
-      var parsedValue = parseDate(data);
-
-      if (parsedValue.type) {
-        // huzzah!
-        this._value = parsedValue;
-
-      } else {
-        // eww, invalid data
-        this._value = null;
-        console.warn(`Error parsing date: "${data}". Please provide a Date object, or a valid ISO 8601 datetime format, such as "1994-12-15T13:47:20Z"`);
-      }
-    }
+  /**
+   * @private
+   */
+  getValue(): DateTimeData {
+    return this._value;
   }
 
   /**
@@ -303,20 +667,40 @@ export class DateTime {
    * @private
    */
   calcMinMax() {
-    let today = new Date();
-    let defaultMin = (today.getFullYear() - 100) + '-01-01T00:00:00Z';
-    let defaultMax = today.getFullYear() + '-12-31T23:59:59Z';
+    let todaysYear = new Date().getFullYear();
 
     if (isBlank(this.min)) {
-      this.min = defaultMin;
+      if (isPresent(this.yearValues)) {
+        this.min = Math.min.apply(Math, convertToNumberArray(this.yearValues, 'year'));
+
+      } else {
+        this.min = (todaysYear - 100).toString();
+      }
     }
 
     if (isBlank(this.max)) {
-      this.max = defaultMax;
+      if (isPresent(this.yearValues)) {
+        this.max = Math.max.apply(Math, convertToNumberArray(this.yearValues, 'year'));
+
+      } else {
+        this.max = todaysYear.toString();
+      }
     }
 
-    this._min = parseDate(this.min);
-    this._max = parseDate(this.max);
+    let min = this._min = parseDate(this.min);
+    let max = this._max = parseDate(this.max);
+
+    min.month = min.month || 1;
+    min.day = min.day || 1;
+    min.hour = min.hour || 0;
+    min.minute = min.minute || 0;
+    min.second = min.second || 0;
+
+    max.month = max.month || 12;
+    max.day = max.day || 31;
+    max.hour = max.hour || 23;
+    max.minute = max.minute || 59;
+    max.second = max.second || 59;
   }
 
   /**
@@ -358,8 +742,8 @@ export class DateTime {
       this.setValue(val);
       this.updateText();
 
-      // convert DateTimeData value to Date object
-      fn(convertDateTimeDataToDate(this._value));
+      // convert DateTimeData value to iso datetime format
+      fn(convertDataToISO(this._value));
 
       this.onTouched();
     };
@@ -394,12 +778,33 @@ export class DateTime {
   }
 }
 
-function getColumnWidth(format: string): string {
-  if (format === 'YYYY') {
-    return '105px';
+/**
+ * @private
+ * Use to convert a string of comma separated numbers or
+ * an array of numbers, and clean up any user input
+ */
+function convertToNumberArray(input: any, type: string): number[] {
+  var values: number[] = [];
+
+  if (isString(input)) {
+    // convert the string to an array of strings
+    // auto remove any whitespace and [] characters
+    input = input.replace(/\[|\]|\s/g, '').split(',');
   }
 
-  if (format.length < 3) {
-    return '75px';
+  if (isArray(input)) {
+    // ensure each value is an actual number in the returned array
+    input.forEach(num => {
+      num = parseInt(num, 10);
+      if (!isNaN(num)) {
+        values.push(num);
+      }
+    });
   }
+
+  if (!values.length) {
+    console.warn(`Invalid "${type}Values". Must be an array of numbers, or a comma separated string of numbers.`);
+  }
+
+  return values;
 }

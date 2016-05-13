@@ -2,34 +2,10 @@ import * as datetime from '../../../ionic/util/datetime-util';
 
 export function run() {
 
-describe('convertDataToDate', () => {
-
-  it('should convert DateTimeData to Date object, Z time zone', () => {
-    var data: datetime.DateTimeData = {
-      type: 'dateobj',
-      year: 1994,
-      month: 12,
-      day: 15,
-      hour: 13,
-      minute: 47,
-      second: 20,
-      millisecond: 789,
-      tzOffset: 330,
-    };
-
-    var d = datetime.convertDataToDate(data);
-    expect(d.getFullYear()).toEqual(1994);
-    expect(d.getMonth()).toEqual(11);
-    expect(d.getDate()).toEqual(15);
-    expect(d.getHours()).toEqual(13);
-    expect(d.getMinutes()).toEqual(47);
-    expect(d.getSeconds()).toEqual(20);
-    expect(d.getMilliseconds()).toEqual(789);
-  });
+describe('convertDataToISO', () => {
 
   it('should convert DateTimeData to datetime string, +330 tz offset', () => {
     var data: datetime.DateTimeData = {
-      type: 'datestr',
       year: 1994,
       month: 12,
       day: 15,
@@ -40,33 +16,79 @@ describe('convertDataToDate', () => {
       tzOffset: 330,
     };
 
-    var str = datetime.convertDataToDate(data);
+    var str = datetime.convertDataToISO(data);
     expect(str).toEqual('1994-12-15T13:47:20.789+05:30');
   });
 
   it('should convert DateTimeData to datetime string, Z timezone', () => {
     var data: datetime.DateTimeData = {
-      type: 'datestr',
       year: 1994,
       month: 12,
       day: 15,
       hour: 13,
-      minute: 47,
-      second: 20,
-      millisecond: 789,
+      minute: null,
+      second: null,
+      millisecond: null,
       tzOffset: 0,
     };
 
-    var str = datetime.convertDataToDate(data);
-    expect(str).toEqual('1994-12-15T13:47:20.789Z');
+    var str = datetime.convertDataToISO(data);
+    expect(str).toEqual('1994-12-15T13:00:00Z');
   });
 
-  it('should convert DateTimeData to time string, with milliseconds', () => {
+  it('should convert DateTimeData to YYYY-MM-DD', () => {
     var data: datetime.DateTimeData = {
-      type: 'timestr',
       year: 1994,
-      month: 12,
-      day: 15,
+      month: 1,
+      day: 1,
+      hour: null,
+      minute: null,
+      second: null,
+      millisecond: null,
+      tzOffset: 0,
+    };
+
+    var str = datetime.convertDataToISO(data);
+    expect(str).toEqual('1994-01-01');
+  });
+
+  it('should convert DateTimeData to YYYY-MM', () => {
+    var data: datetime.DateTimeData = {
+      year: 1994,
+      month: 1,
+      day: null,
+      hour: null,
+      minute: null,
+      second: null,
+      millisecond: null,
+      tzOffset: 0,
+    };
+
+    var str = datetime.convertDataToISO(data);
+    expect(str).toEqual('1994-01');
+  });
+
+  it('should convert DateTimeData to YYYY', () => {
+    var data: datetime.DateTimeData = {
+      year: 1994,
+      month: null,
+      day: null,
+      hour: null,
+      minute: null,
+      second: null,
+      millisecond: null,
+      tzOffset: 0,
+    };
+
+    var str = datetime.convertDataToISO(data);
+    expect(str).toEqual('1994');
+  });
+
+  it('should convert DateTimeData to HH:mm:SS.SSS', () => {
+    var data: datetime.DateTimeData = {
+      year: null,
+      month: null,
+      day: null,
       hour: 13,
       minute: 47,
       second: 20,
@@ -74,25 +96,59 @@ describe('convertDataToDate', () => {
       tzOffset: 0,
     };
 
-    var str = datetime.convertDataToDate(data);
+    var str = datetime.convertDataToISO(data);
     expect(str).toEqual('13:47:20.789');
   });
 
-  it('should convert DateTimeData to time string', () => {
+  it('should convert DateTimeData to HH:mm:SS string', () => {
     var data: datetime.DateTimeData = {
-      type: 'timestr',
-      year: 1994,
-      month: 12,
-      day: 15,
+      year: null,
+      month: null,
+      day: null,
       hour: 13,
       minute: 47,
       second: 20,
-      millisecond: 0,
+      millisecond: null,
       tzOffset: 0,
     };
 
-    var str = datetime.convertDataToDate(data);
+    var str = datetime.convertDataToISO(data);
     expect(str).toEqual('13:47:20');
+  });
+
+  it('should convert DateTimeData to HH:mm string', () => {
+    var data: datetime.DateTimeData = {
+      year: null,
+      month: null,
+      day: null,
+      hour: 13,
+      minute: 47,
+      second: null,
+      millisecond: null,
+      tzOffset: 0,
+    };
+
+    var str = datetime.convertDataToISO(data);
+    expect(str).toEqual('13:47');
+  });
+
+  it('should not convert DateTimeData with null data', () => {
+    var data: datetime.DateTimeData = {
+      year: null,
+      month: null,
+      day: null,
+      hour: null,
+      minute: null,
+      second: null,
+      millisecond: null,
+      tzOffset: 0,
+    };
+
+    var str = datetime.convertDataToISO(data);
+    expect(str).toEqual('');
+
+    var str = datetime.convertDataToISO({});
+    expect(str).toEqual('');
   });
 
 });
@@ -132,11 +188,64 @@ describe('convertFormatToKey', () => {
   });
 
   it('should convert am/pm formats to their DateParse key', () => {
-    expect(datetime.convertFormatToKey('A')).toEqual('hour');
-    expect(datetime.convertFormatToKey('a')).toEqual('hour');
+    expect(datetime.convertFormatToKey('A')).toEqual('ampm');
+    expect(datetime.convertFormatToKey('a')).toEqual('ampm');
   });
 
 });
+
+
+describe('getValueFromFormat', () => {
+
+  it('should convert 24 hour to am value', () => {
+    var d = datetime.parseDate('00:47');
+    expect(datetime.getValueFromFormat(d, 'hh')).toEqual(0);
+    expect(datetime.getValueFromFormat(d, 'h')).toEqual(0);
+
+    var d = datetime.parseDate('11:47');
+    expect(datetime.getValueFromFormat(d, 'hh')).toEqual(11);
+    expect(datetime.getValueFromFormat(d, 'h')).toEqual(11);
+  });
+
+  it('should convert 24 hour to pm value', () => {
+    var d = datetime.parseDate('12:47');
+    expect(datetime.getValueFromFormat(d, 'hh')).toEqual(12);
+    expect(datetime.getValueFromFormat(d, 'h')).toEqual(12);
+
+    var d = datetime.parseDate('13:47');
+    expect(datetime.getValueFromFormat(d, 'hh')).toEqual(1);
+    expect(datetime.getValueFromFormat(d, 'h')).toEqual(1);
+  });
+
+  it('should convert am hours to am value', () => {
+    var d = datetime.parseDate('00:47');
+    expect(datetime.getValueFromFormat(d, 'A')).toEqual('am');
+    expect(datetime.getValueFromFormat(d, 'a')).toEqual('am');
+
+    var d = datetime.parseDate('11:47');
+    expect(datetime.getValueFromFormat(d, 'A')).toEqual('am');
+    expect(datetime.getValueFromFormat(d, 'a')).toEqual('am');
+  });
+
+  it('should convert pm hours to pm value', () => {
+    var d = datetime.parseDate('12:47');
+    expect(datetime.getValueFromFormat(d, 'A')).toEqual('pm');
+    expect(datetime.getValueFromFormat(d, 'a')).toEqual('pm');
+
+    var d = datetime.parseDate('23:47');
+    expect(datetime.getValueFromFormat(d, 'A')).toEqual('pm');
+    expect(datetime.getValueFromFormat(d, 'a')).toEqual('pm');
+  });
+
+  it('should convert date formats to values', () => {
+    var d = datetime.parseDate('1994-12-15T13:47:20.789Z');
+    expect(datetime.getValueFromFormat(d, 'YYYY')).toEqual(1994);
+    expect(datetime.getValueFromFormat(d, 'M')).toEqual(12);
+    expect(datetime.getValueFromFormat(d, 'DDDD')).toEqual(15);
+  });
+
+});
+
 
 describe('parseTemplate', () => {
 
@@ -183,9 +292,31 @@ describe('parseTemplate', () => {
 
 describe('renderDateTime', () => {
 
-  it('should format h:mm a', () => {
+  it('should format h:mm a, PM', () => {
     var d = datetime.parseDate('1994-12-15T13:47:20.789Z');
     expect(datetime.renderDateTime('h:mm a', d)).toEqual('1:47 pm');
+  });
+
+  it('should get empty text for format without data', () => {
+    var emptyObj = {};
+    expect(datetime.renderDateTime('MMMM D, YYYY h:mm a', emptyObj)).toEqual('');
+
+    var dataWithNulls: datetime.DateTimeData = {
+      year: null,
+      month: null,
+      day: null,
+      hour: null,
+      minute: null,
+      second: null,
+      millisecond: null,
+      tzOffset: 0,
+    };
+    expect(datetime.renderDateTime('MMMM D, YYYY h:mm a', dataWithNulls)).toEqual('');
+  });
+
+  it('should format h:mm a, AM', () => {
+    var d = datetime.parseDate('1994-12-15T00:47:20.789Z');
+    expect(datetime.renderDateTime('h:mm a', d)).toEqual('12:47 am');
   });
 
   it('should format HH:mm', () => {
@@ -233,23 +364,31 @@ describe('renderDateTime', () => {
 describe('renderTextFormat', () => {
 
   it('should return a', () => {
-    expect(datetime.renderTextFormat('a', 0)).toEqual('am');
-    expect(datetime.renderTextFormat('a', 1)).toEqual('am');
-    expect(datetime.renderTextFormat('a', 11)).toEqual('am');
-    expect(datetime.renderTextFormat('a', 12)).toEqual('pm');
-    expect(datetime.renderTextFormat('a', 13)).toEqual('pm');
-    expect(datetime.renderTextFormat('a', 21)).toEqual('pm');
-    expect(datetime.renderTextFormat('a', 23)).toEqual('pm');
+    var d = datetime.parseDate('00:47');
+    expect(datetime.renderTextFormat('a', 'am', d)).toEqual('am');
+    expect(datetime.renderTextFormat('a', 'am')).toEqual('am');
+
+    var d = datetime.parseDate('11:47');
+    expect(datetime.renderTextFormat('a', 'am', d)).toEqual('am');
+    expect(datetime.renderTextFormat('a', 'am')).toEqual('am');
+
+    var d = datetime.parseDate('12:47');
+    expect(datetime.renderTextFormat('a', 'pm', d)).toEqual('pm');
+    expect(datetime.renderTextFormat('a', 'pm')).toEqual('pm');
   });
 
   it('should return A', () => {
-    expect(datetime.renderTextFormat('A', 0)).toEqual('AM');
-    expect(datetime.renderTextFormat('A', 1)).toEqual('AM');
-    expect(datetime.renderTextFormat('A', 11)).toEqual('AM');
-    expect(datetime.renderTextFormat('A', 12)).toEqual('PM');
-    expect(datetime.renderTextFormat('A', 13)).toEqual('PM');
-    expect(datetime.renderTextFormat('A', 21)).toEqual('PM');
-    expect(datetime.renderTextFormat('A', 23)).toEqual('PM');
+    var d = datetime.parseDate('00:47');
+    expect(datetime.renderTextFormat('A', 'am', d)).toEqual('AM');
+    expect(datetime.renderTextFormat('A', 'am')).toEqual('AM');
+
+    var d = datetime.parseDate('11:47');
+    expect(datetime.renderTextFormat('A', 'am', d)).toEqual('AM');
+    expect(datetime.renderTextFormat('A', 'am')).toEqual('AM');
+
+    var d = datetime.parseDate('12:47');
+    expect(datetime.renderTextFormat('A', 'pm', d)).toEqual('PM');
+    expect(datetime.renderTextFormat('A', 'pm')).toEqual('PM');
   });
 
   it('should return m', () => {
@@ -358,10 +497,9 @@ describe('parseISODate', () => {
 
   it('should get HH:MM:SS.SSS+HH:MM', () => {
     var parsed = datetime.parseDate('13:47:20.789+05:30');
-    expect(parsed.type).toEqual('timestr');
-    expect(parsed.year).toEqual(1970);
-    expect(parsed.month).toEqual(1);
-    expect(parsed.day).toEqual(1);
+    expect(parsed.year).toEqual(null);
+    expect(parsed.month).toEqual(null);
+    expect(parsed.day).toEqual(null);
     expect(parsed.hour).toEqual(13);
     expect(parsed.minute).toEqual(47);
     expect(parsed.second).toEqual(20);
@@ -371,10 +509,9 @@ describe('parseISODate', () => {
 
   it('should get HH:MM:SS.SSS', () => {
     var parsed = datetime.parseDate('13:47:20.789');
-    expect(parsed.type).toEqual('timestr');
-    expect(parsed.year).toEqual(1970);
-    expect(parsed.month).toEqual(1);
-    expect(parsed.day).toEqual(1);
+    expect(parsed.year).toEqual(null);
+    expect(parsed.month).toEqual(null);
+    expect(parsed.day).toEqual(null);
     expect(parsed.hour).toEqual(13);
     expect(parsed.minute).toEqual(47);
     expect(parsed.second).toEqual(20);
@@ -384,33 +521,30 @@ describe('parseISODate', () => {
 
   it('should get HH:MM:SS', () => {
     var parsed = datetime.parseDate('13:47:20');
-    expect(parsed.type).toEqual('timestr');
-    expect(parsed.year).toEqual(1970);
-    expect(parsed.month).toEqual(1);
-    expect(parsed.day).toEqual(1);
+    expect(parsed.year).toEqual(null);
+    expect(parsed.month).toEqual(null);
+    expect(parsed.day).toEqual(null);
     expect(parsed.hour).toEqual(13);
     expect(parsed.minute).toEqual(47);
     expect(parsed.second).toEqual(20);
-    expect(parsed.millisecond).toEqual(0);
+    expect(parsed.millisecond).toEqual(null);
     expect(parsed.tzOffset).toEqual(0);
   });
 
   it('should get HH:MM', () => {
     var parsed = datetime.parseDate('13:47');
-    expect(parsed.type).toEqual('timestr');
-    expect(parsed.year).toEqual(1970);
-    expect(parsed.month).toEqual(1);
-    expect(parsed.day).toEqual(1);
+    expect(parsed.year).toEqual(null);
+    expect(parsed.month).toEqual(null);
+    expect(parsed.day).toEqual(null);
     expect(parsed.hour).toEqual(13);
     expect(parsed.minute).toEqual(47);
-    expect(parsed.second).toEqual(0);
-    expect(parsed.millisecond).toEqual(0);
+    expect(parsed.second).toEqual(null);
+    expect(parsed.millisecond).toEqual(null);
     expect(parsed.tzOffset).toEqual(0);
   });
 
   it('should get YYYY-MM-DDTHH:MM:SS.SSS+HH:MM', () => {
     var parsed = datetime.parseDate('1994-12-15T13:47:20.789+05:30');
-    expect(parsed.type).toEqual('datestr');
     expect(parsed.year).toEqual(1994);
     expect(parsed.month).toEqual(12);
     expect(parsed.day).toEqual(15);
@@ -423,7 +557,6 @@ describe('parseISODate', () => {
 
   it('should get YYYY-MM-DDTHH:MM:SS.SSS-HH:MM', () => {
     var parsed = datetime.parseDate('1994-12-15T13:47:20.789-11:45');
-    expect(parsed.type).toEqual('datestr');
     expect(parsed.year).toEqual(1994);
     expect(parsed.month).toEqual(12);
     expect(parsed.day).toEqual(15);
@@ -436,7 +569,6 @@ describe('parseISODate', () => {
 
   it('should get YYYY-MM-DDTHH:MM:SS.SSS-HH', () => {
     var parsed = datetime.parseDate('1994-12-15T13:47:20.789-02');
-    expect(parsed.type).toEqual('datestr');
     expect(parsed.year).toEqual(1994);
     expect(parsed.month).toEqual(12);
     expect(parsed.day).toEqual(15);
@@ -449,7 +581,6 @@ describe('parseISODate', () => {
 
   it('should get YYYY-MM-DDTHH:MM:SS.SSSZ and set UTC offset', () => {
     var parsed = datetime.parseDate('1994-12-15T13:47:20.789Z');
-    expect(parsed.type).toEqual('datestr');
     expect(parsed.year).toEqual(1994);
     expect(parsed.month).toEqual(12);
     expect(parsed.day).toEqual(15);
@@ -462,137 +593,104 @@ describe('parseISODate', () => {
 
   it('should get YYYY-MM-DDTHH:MM:SS', () => {
     var parsed = datetime.parseDate('1994-12-15T13:47:20');
-    expect(parsed.type).toEqual('datestr');
     expect(parsed.year).toEqual(1994);
     expect(parsed.month).toEqual(12);
     expect(parsed.day).toEqual(15);
     expect(parsed.hour).toEqual(13);
     expect(parsed.minute).toEqual(47);
     expect(parsed.second).toEqual(20);
-    expect(parsed.millisecond).toEqual(0);
+    expect(parsed.millisecond).toEqual(null);
     expect(parsed.tzOffset).toEqual(0);
   });
 
   it('should get YYYY-MM-DDTHH:MM', () => {
     var parsed = datetime.parseDate('1994-12-15T13:47');
-    expect(parsed.type).toEqual('datestr');
     expect(parsed.year).toEqual(1994);
     expect(parsed.month).toEqual(12);
     expect(parsed.day).toEqual(15);
     expect(parsed.hour).toEqual(13);
     expect(parsed.minute).toEqual(47);
-    expect(parsed.second).toEqual(0);
-    expect(parsed.millisecond).toEqual(0);
+    expect(parsed.second).toEqual(null);
+    expect(parsed.millisecond).toEqual(null);
     expect(parsed.tzOffset).toEqual(0);
   });
 
   it('should NOT work with YYYY-MM-DDTHH', () => {
     var parsed = datetime.parseDate('1994-12-15T13');
-    expect(parsed.type).toEqual(null);
-    expect(parsed.year).toEqual(1970);
-    expect(parsed.month).toEqual(1);
-    expect(parsed.day).toEqual(1);
-    expect(parsed.hour).toEqual(0);
-    expect(parsed.minute).toEqual(0);
-    expect(parsed.second).toEqual(0);
-    expect(parsed.millisecond).toEqual(0);
-    expect(parsed.tzOffset).toEqual(0);
+    expect(parsed).toEqual(null);
   });
 
   it('should get YYYY-MM-DD', () => {
     var parsed = datetime.parseDate('1994-12-15');
-    expect(parsed.type).toEqual('datestr');
     expect(parsed.year).toEqual(1994);
     expect(parsed.month).toEqual(12);
     expect(parsed.day).toEqual(15);
-    expect(parsed.hour).toEqual(0);
-    expect(parsed.minute).toEqual(0);
-    expect(parsed.second).toEqual(0);
-    expect(parsed.millisecond).toEqual(0);
+    expect(parsed.hour).toEqual(null);
+    expect(parsed.minute).toEqual(null);
+    expect(parsed.second).toEqual(null);
+    expect(parsed.millisecond).toEqual(null);
     expect(parsed.tzOffset).toEqual(0);
   });
 
   it('should get YYYY-MM', () => {
     var parsed = datetime.parseDate('1994-12');
-    expect(parsed.type).toEqual('datestr');
     expect(parsed.year).toEqual(1994);
     expect(parsed.month).toEqual(12);
-    expect(parsed.day).toEqual(1);
-    expect(parsed.hour).toEqual(0);
-    expect(parsed.minute).toEqual(0);
-    expect(parsed.second).toEqual(0);
-    expect(parsed.millisecond).toEqual(0);
+    expect(parsed.day).toEqual(null);
+    expect(parsed.hour).toEqual(null);
+    expect(parsed.minute).toEqual(null);
+    expect(parsed.second).toEqual(null);
+    expect(parsed.millisecond).toEqual(null);
     expect(parsed.tzOffset).toEqual(0);
   });
 
   it('should get YYYY', () => {
     var parsed = datetime.parseDate('1994');
-    expect(parsed.type).toEqual('datestr');
     expect(parsed.year).toEqual(1994);
-    expect(parsed.month).toEqual(1);
-    expect(parsed.day).toEqual(1);
-    expect(parsed.hour).toEqual(0);
-    expect(parsed.minute).toEqual(0);
-    expect(parsed.second).toEqual(0);
-    expect(parsed.millisecond).toEqual(0);
+    expect(parsed.month).toEqual(null);
+    expect(parsed.day).toEqual(null);
+    expect(parsed.hour).toEqual(null);
+    expect(parsed.minute).toEqual(null);
+    expect(parsed.second).toEqual(null);
+    expect(parsed.millisecond).toEqual(null);
     expect(parsed.tzOffset).toEqual(0);
   });
 
   it('should handle bad date formats', () => {
     var parsed = datetime.parseDate('12/15/1994');
-    expect(parsed.type).toEqual(null);
-    expect(parsed.year).toEqual(1970);
-    expect(parsed.month).toEqual(1);
-    expect(parsed.day).toEqual(1);
-    expect(parsed.hour).toEqual(0);
-    expect(parsed.minute).toEqual(0);
-    expect(parsed.second).toEqual(0);
-    expect(parsed.millisecond).toEqual(0);
-    expect(parsed.tzOffset).toEqual(0);
+    expect(parsed).toEqual(null);
 
     var parsed = datetime.parseDate('12-15-1994');
-    expect(parsed.type).toEqual(null);
+    expect(parsed).toEqual(null);
 
     var parsed = datetime.parseDate('1994-1994');
-    expect(parsed.type).toEqual(null);
+    expect(parsed).toEqual(null);
 
     var parsed = datetime.parseDate('1994 12 15');
-    expect(parsed.type).toEqual(null);
+    expect(parsed).toEqual(null);
 
     var parsed = datetime.parseDate('12.15.1994');
-    expect(parsed.type).toEqual(null);
+    expect(parsed).toEqual(null);
 
     var parsed = datetime.parseDate('12\\15\\1994');
-    expect(parsed.type).toEqual(null);
+    expect(parsed).toEqual(null);
 
     var parsed = datetime.parseDate('200');
-    expect(parsed.type).toEqual(null);
-    expect(parsed.year).toEqual(1970);
+    expect(parsed).toEqual(null);
 
     var parsed = datetime.parseDate('holla');
-    expect(parsed.type).toEqual(null);
-    expect(parsed.year).toEqual(1970);
+    expect(parsed).toEqual(null);
   });
 
   it('should get nothing with null date', () => {
     var parsed = datetime.parseDate(null);
-    expect(parsed.type).toEqual(null);
-    expect(parsed.year).toEqual(1970);
-    expect(parsed.month).toEqual(1);
-    expect(parsed.day).toEqual(1);
-    expect(parsed.hour).toEqual(0);
-    expect(parsed.minute).toEqual(0);
-    expect(parsed.second).toEqual(0);
-    expect(parsed.millisecond).toEqual(0);
-    expect(parsed.tzOffset).toEqual(0);
+    expect(parsed).toEqual(null);
 
     var parsed = datetime.parseDate(undefined);
-    expect(parsed.type).toEqual(null);
-    expect(parsed.year).toEqual(1970);
+    expect(parsed).toEqual(null);
 
     var parsed = datetime.parseDate('');
-    expect(parsed.type).toEqual(null);
-    expect(parsed.year).toEqual(1970);
+    expect(parsed).toEqual(null);
   });
 
 });

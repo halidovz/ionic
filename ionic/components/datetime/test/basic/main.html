@@ -11,12 +11,12 @@
 
   <ion-item>
     <ion-label>MMMM YYYY</ion-label>
-    <ion-datetime displayFormat="MMMM YYYY" min="1989" max="2002" [(ngModel)]="netscapeRelease"></ion-datetime>
+    <ion-datetime displayFormat="MMMM YYYY" min="1989-06-04" max="2004-08-23" [(ngModel)]="netscapeRelease"></ion-datetime>
   </ion-item>
 
   <ion-item>
     <ion-label>MMM DD, YYYY</ion-label>
-    <ion-datetime displayFormat="MMM DD, YYYY" min="1994" max="2012" [(ngModel)]="firefoxRelease"></ion-datetime>
+    <ion-datetime displayFormat="MMM DD, YYYY" min="1994-03-14" max="2012-12-09" [(ngModel)]="firefoxRelease"></ion-datetime>
   </ion-item>
 
   <ion-item>
@@ -30,15 +30,27 @@
   </ion-item>
 
   <ion-item>
-    <ion-label>MMM D, YYYY h:mm A</ion-label>
-    <ion-datetime displayFormat="MMM D, YYYY h:mm A" min="1989" max="2002" [(ngModel)]="netscapeRelease"></ion-datetime>
+    <ion-label>hh:mm A (15 min steps)</ion-label>
+    <ion-datetime displayFormat="h:mm a" minuteValues="0,15,30,45"></ion-datetime>
+  </ion-item>
+
+  <ion-item>
+    <ion-label>D MMM YYYY H:mm</ion-label>
+    <ion-datetime displayFormat="D MMM YYYY H:mm" min="1997" max="2009" [(ngModel)]="webkitOpenSourced"></ion-datetime>
+  </ion-item>
+
+  <ion-item>
+    <ion-label>Leap years, summer months</ion-label>
+    <ion-datetime displayFormat="MMM YYYY" pickerFormat="MMMM YYYY" [yearValues]="leapYearsArray" monthValues="6,7,8" [(ngModel)]="leapYearsSummerMonths"></ion-datetime>
   </ion-item>
 
   <p aria-hidden="true" padding>
-    <code>wwwInvented: {{wwwInvented | json}}</code><br>
-    <code>netscapeRelease: {{netscapeRelease | json}}</code><br>
-    <code>firefoxRelease: {{firefoxRelease | json}}</code><br>
-    <code>time: {{time | json}}</code><br>
+    <code>wwwInvented: {{wwwInvented}}</code><br>
+    <code>netscapeRelease: {{netscapeRelease}}</code><br>
+    <code>firefoxRelease: {{firefoxRelease}}</code><br>
+    <code>webkitOpenSourced: {{webkitOpenSourced}}</code><br>
+    <code>time: {{time}}</code><br>
+    <code>Leap year, summer months: {{leapYears}}</code><br>
   </p>
 
 </ion-content>
