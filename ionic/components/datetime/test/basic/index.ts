@@ -7,9 +7,9 @@ import {App, Page} from '../../../../../ionic';
 class E2EPage {
   wwwInvented = '1989';
   time = '13:47';
-  netscapeRelease = '1994-12-15T13:47:20.789';
-  operaRelease = '1995-04-15';
-  firefoxRelease = '2002-09-23T15:03:46.789';
+  netscapeReleased = '1994-12-15T13:47:20.789';
+  operaReleased = '1995-04-15';
+  firefoxReleased = '2002-09-23T15:03:46.789';
   webkitOpenSourced = '2005-06-17T11:06Z';
   chromeReleased = '2008-09-02';
   leapYearsSummerMonths = '';

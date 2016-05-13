@@ -11,17 +11,17 @@
 
   <ion-item>
     <ion-label>MMMM YY</ion-label>
-    <ion-datetime displayFormat="MMMM YY" min="1989-06-04" max="2004-08-23" [(ngModel)]="netscapeRelease"></ion-datetime>
+    <ion-datetime displayFormat="MMMM YY" min="1989-06-04" max="2004-08-23" [(ngModel)]="netscapeReleased"></ion-datetime>
   </ion-item>
 
   <ion-item>
     <ion-label>MMM DD, YYYY</ion-label>
-    <ion-datetime displayFormat="MMM DD, YYYY" min="1994-03-14" max="2012-12-09" [(ngModel)]="firefoxRelease"></ion-datetime>
+    <ion-datetime displayFormat="MMM DD, YYYY" min="1994-03-14" max="2012-12-09" [(ngModel)]="firefoxReleased" class="e2eOpenMMDDYYYY"></ion-datetime>
   </ion-item>
 
   <ion-item>
     <ion-label>DDD. MM/DD/YY (locale day)</ion-label>
-    <ion-datetime displayFormat="DDD. MM/DD/YY" min="1990-02" max="2000" [dayShortNames]="customShortDay" [(ngModel)]="operaRelease"></ion-datetime>
+    <ion-datetime displayFormat="DDD. MM/DD/YY" min="1990-02" max="2000" [dayShortNames]="customShortDay" [(ngModel)]="operaReleased"></ion-datetime>
   </ion-item>
 
   <ion-item>
@@ -56,9 +56,9 @@
 
   <p aria-hidden="true" padding>
     <code>wwwInvented: {{wwwInvented}}</code><br>
-    <code>netscapeRelease: {{netscapeRelease}}</code><br>
-    <code>operaRelease: {{operaRelease}}</code><br>
-    <code>firefoxRelease: {{firefoxRelease}}</code><br>
+    <code>netscapeReleased: {{netscapeReleased}}</code><br>
+    <code>operaReleased: {{operaReleased}}</code><br>
+    <code>firefoxReleased: {{firefoxReleased}}</code><br>
     <code>webkitOpenSourced: {{webkitOpenSourced}}</code><br>
     <code>chromeReleased: {{chromeReleased}}</code><br>
     <code>time: {{time}}</code><br>
