@@ -84,7 +84,7 @@ export class List extends Ion {
   }
 
   /**
-   * Enable sliding items if your page has
+   * Close sliding items if your page has them
    *
    * ```ts
    * import {Page, List} from 'ionic-angular';
